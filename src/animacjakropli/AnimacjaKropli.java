@@ -23,6 +23,14 @@ public class AnimacjaKropli extends JFrame {
                 startAnimation();
             }
         });
+        JButton bUsun = (JButton)panelButtonow.add(new JButton("Usuń"));
+        
+        bUsun.addActionListener(new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                stopAnimation();
+            }
+        });
         
         this.getContentPane().add(panelAnimacji);
         this.getContentPane().add(panelButtonow, BorderLayout.SOUTH);
@@ -31,6 +39,10 @@ public class AnimacjaKropli extends JFrame {
     public void startAnimation()
     {
         panelAnimacji.addKropelka();
+    }
+    public void stopAnimation()
+    {
+        panelAnimacji.stop();
     }
     
     private JPanel panelButtonow = new JPanel();
@@ -46,22 +58,15 @@ public class AnimacjaKropli extends JFrame {
         public void addKropelka()
         {
             listaKropelek.add(new Kropelka());
-            for(int i = 0; i < 400; i++)
-            {
-                for(int j = 0; j < listaKropelek.size(); j++)
-                {
-                    ((Kropelka)listaKropelek.get(j)).ruszKropelka(this);
-                    this.paint(this.getGraphics());
-                    try 
-                    {
-                        Thread.sleep(1);
-                    } 
-                    catch (InterruptedException ex) 
-                    {
-                        System.out.println(ex.getMessage());
-                    }
-                }    
-            }
+            watek = new Thread(grupaWatkow, new KropelkaRunnable((Kropelka)listaKropelek.get(listaKropelek.size()-1)));
+            watek.start();
+            
+            grupaWatkow.list();
+        }
+        
+        public void stop()
+        {
+            grupaWatkow.interrupt();
         }
         
         @Override
@@ -74,7 +79,38 @@ public class AnimacjaKropli extends JFrame {
                 g.drawImage(Kropelka.getImg(), ((Kropelka)listaKropelek.get(i)).x, ((Kropelka)listaKropelek.get(i)).y, null);
             }
         }
+        Thread watek;
         ArrayList listaKropelek = new ArrayList();
+        JPanel ten = this;
+        ThreadGroup grupaWatkow = new ThreadGroup("Grupa Kropelek");
+        
+        public class KropelkaRunnable implements Runnable
+        {
+            public KropelkaRunnable(Kropelka kropelka)
+            {
+                this.kropelka = kropelka;
+            }
+            @Override
+            public void run()
+            {
+                try
+                {
+                    while(!Thread.currentThread().isInterrupted())
+                    {
+                        this.kropelka.ruszKropelka(ten);
+                        repaint();
+                        Thread.sleep(3);
+                    }
+                }
+                catch (InterruptedException ex) 
+                {
+                    System.out.println(ex.getMessage());
+                    listaKropelek.clear();
+                    repaint();
+                }   
+            }
+            Kropelka kropelka;
+        }
     }
 }
 class Kropelka
