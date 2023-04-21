@@ -23,12 +23,21 @@ public class AnimacjaKropli extends JFrame {
                 startAnimation();
             }
         });
-        JButton bUsun = (JButton)panelButtonow.add(new JButton("Usuń"));
+        JButton bStop = (JButton)panelButtonow.add(new JButton("Stop"));
         
-        bUsun.addActionListener(new ActionListener(){
+        bStop.addActionListener(new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent e) {
                 stopAnimation();
+            }
+        });
+        
+        JButton bDodaj = (JButton)panelButtonow.add(new JButton("Dodaj"));
+        
+        bDodaj.addActionListener(new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dodajAnimation();
             }
         });
         
@@ -38,11 +47,15 @@ public class AnimacjaKropli extends JFrame {
     }
     public void startAnimation()
     {
-        panelAnimacji.addKropelka();
+        panelAnimacji.startAnimation();
     }
     public void stopAnimation()
     {
         panelAnimacji.stop();
+    }
+    public void dodajAnimation()
+    {
+        panelAnimacji.addKropelka();
     }
     
     private JPanel panelButtonow = new JPanel();
@@ -55,6 +68,8 @@ public class AnimacjaKropli extends JFrame {
 
     class PanelAnimacji extends JPanel
     {
+        private volatile boolean zatrzymany = false;
+        private Object lock = new Object();
         public void addKropelka()
         {
             listaKropelek.add(new Kropelka());
@@ -63,10 +78,20 @@ public class AnimacjaKropli extends JFrame {
             
             grupaWatkow.list();
         }
-        
+        public void startAnimation()
+        {
+            if(zatrzymany)
+            {
+                zatrzymany = false;
+                synchronized (lock) 
+                {
+                    lock.notifyAll();
+                }
+            }
+        }
         public void stop()
         {
-            grupaWatkow.interrupt();
+            zatrzymany = true;
         }
         
         @Override
@@ -93,21 +118,32 @@ public class AnimacjaKropli extends JFrame {
             @Override
             public void run()
             {
-                try
+                while(true)
                 {
-                    while(!Thread.currentThread().isInterrupted())
+                    synchronized(lock)
                     {
-                        this.kropelka.ruszKropelka(ten);
-                        repaint();
+                        while(zatrzymany)
+                        {
+                            try 
+                            {
+                                lock.wait();
+                            } catch (InterruptedException ex) 
+                            {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                    this.kropelka.ruszKropelka(ten);
+                    repaint();
+                    try 
+                    {
                         Thread.sleep(3);
+                    } 
+                    catch (InterruptedException ex) 
+                    {
+                        ex.printStackTrace();
                     }
                 }
-                catch (InterruptedException ex) 
-                {
-                    System.out.println(ex.getMessage());
-                    listaKropelek.clear();
-                    repaint();
-                }   
             }
             Kropelka kropelka;
         }
